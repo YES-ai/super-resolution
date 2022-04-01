@@ -19,14 +19,27 @@ def denormalize(tensors):
     return torch.clamp(tensors, 0, 255)
 
 class ImageDataset(Dataset):
-  def __init__(self, root, normalize=True):
+  def __init__(self, root, normalize=True, center_crop=False, target_size=(512,512)):
     super(ImageDataset, self).__init__()
     self.files = sorted(glob.glob(root + "/*.*"))
     self.normalize = normalize
+    self.center_crop = center_crop
+    self.target_size = target_size
 
   def __getitem__(self, index):
     img = Image.open(self.files[index % len(self.files)])
     hr_height, hr_width = img.size
+    
+    # Crop the center of the image
+    if self.center_crop:
+      target_height, target_width = self.target_size
+      left = (hr_width - target_width)/2
+      top = (hr_height - target_height)/2
+      right = (hr_width + target_width)/2
+      bottom = (hr_height + target_height)/2
+      img = img.crop((left, top, right, bottom))
+      hr_height, hr_width = self.target_size
+    
     # Transforms for low resolution images and high resolution images
     lr_transform = []
     lr_transform.append(transforms.Resize((hr_height // 4, hr_height // 4), Image.BICUBIC))
@@ -50,6 +63,11 @@ class ImageDataset(Dataset):
     return len(self.files)
 
 class Set14(ImageDataset):
-  def __init__(self, normalize):
-    super(Set14, self).__init__("./data/set14/HR/", normalize=normalize)
+  def __init__(self, normalize, center_crop):
+    super(Set14, self).__init__("./data/set14/HR/", normalize=normalize, center_crop=center_crop)
+
+class Flickr2K(ImageDataset):
+  def __init__(self, normalize, center_crop):
+    super(Flickr2K, self).__init__("./data/Flickr2K/", normalize=normalize, center_crop=center_crop)
+
 
