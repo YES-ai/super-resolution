@@ -18,11 +18,12 @@ def denormalize(tensors):
   return torch.clamp(tensors, 0, 255)
 
 class ImageDataset(Dataset):
-  def __init__(self, root, normalize=True, target_size=(512,512)):
+  def __init__(self, root, normalize=True, target_size=(512,512), scale = 2):
     super(ImageDataset, self).__init__()
     self.files = sorted(glob.glob(root + "/*.*"))
     self.normalize = normalize
     self.target_size = target_size
+    self.scale = scale
 
   def __getitem__(self, index):
     img = Image.open(self.files[index % len(self.files)])
@@ -32,7 +33,7 @@ class ImageDataset(Dataset):
 
     # Transforms for low resolution images and high resolution images
     lr_transform = []
-    lr_transform.append(transforms.Resize((hr_height // 2, hr_width // 2), transforms.InterpolationMode.BICUBIC))
+    lr_transform.append(transforms.Resize((hr_height // self.scale, hr_width // self.scale), transforms.InterpolationMode.BICUBIC))
     lr_transform.append(transforms.ToTensor())
     if self.normalize:
       lr_transform.append(transforms.Normalize(mean, std))
@@ -46,7 +47,7 @@ class ImageDataset(Dataset):
     hr_transform = transforms.Compose(hr_transform)
 
     ur_transform = []
-    ur_transform.append(transforms.Resize((hr_height // 8, hr_width // 8), transforms.InterpolationMode.BICUBIC))
+    ur_transform.append(transforms.Resize((hr_height // self.scale, hr_width // self.scale), transforms.InterpolationMode.BICUBIC))
     ur_transform.append(transforms.Resize((hr_height, hr_width), transforms.InterpolationMode.BICUBIC))
     ur_transform.append(transforms.ToTensor())
     if self.normalize:
